@@ -27,7 +27,7 @@ import os
 import logging
 import unittest
 from decimal import Decimal
-from service.models import Product, Category, db
+from service.models import Product, Category, db, DataValidationError
 from service import app
 from tests.factories import ProductFactory
 
@@ -104,3 +104,138 @@ class TestProductModel(unittest.TestCase):
     #
     # ADD YOUR TEST CASES HERE
     #
+
+    def test_read_product(self):
+        """It should read a product from the database"""
+        product = ProductFactory()
+        product.id = None
+        product.create()
+        # Assert that it was assigned an id and shows up in the database
+        self.assertIsNotNone(product.id)
+        # Check that it matches the original product
+        new_product = Product.find(product.id)
+        self.assertEqual(new_product.name, product.name)
+        self.assertEqual(new_product.description, product.description)
+        self.assertEqual(Decimal(new_product.price), product.price)
+        self.assertEqual(new_product.available, product.available)
+        self.assertEqual(new_product.category, product.category)
+
+    def test_update_product(self):
+        """It should update a product from the database"""
+        product = ProductFactory()
+        product.id = None
+        product.create()
+        # Assert that it was assigned an id and shows up in the database
+        self.assertIsNotNone(product.id)
+        # Check that it matches the original product
+        new_product = Product.find(product.id)
+        self.assertEqual(new_product.name, product.name)
+        self.assertEqual(new_product.description, product.description)
+        self.assertEqual(Decimal(new_product.price), product.price)
+        self.assertEqual(new_product.available, product.available)
+        self.assertEqual(new_product.category, product.category)
+        # Assert updating with invalid data raises an error
+        with self.assertRaises(DataValidationError):
+            new_product.id = None
+            new_product.update()
+        # Update the product and assert it updated
+        new_product.id = 7
+        new_product.description = "Updated description"
+        new_product.update()
+        updated_product = Product.find(new_product.id)
+        self.assertEqual(updated_product.name, new_product.name)
+        self.assertEqual(updated_product.description, new_product.description)
+        self.assertEqual(Decimal(updated_product.price), new_product.price)
+        self.assertEqual(updated_product.available, new_product.available)
+        self.assertEqual(updated_product.category, new_product.category)
+
+    def test_delete_product(self):
+        """It should delete a product from the database"""
+        product = ProductFactory()
+        product.id = None
+        product.create()
+        # Assert that there is a product in the database
+        products = Product.all()
+        self.assertEqual(len(products), 1)
+        # Delete the product from the database
+        products[0].delete()
+        # Assert that there is a product in the database
+        products = Product.all()
+        self.assertEqual(len(products), 0)
+
+    def test_list_products(self):
+        """It should read all the products from the database"""
+        # Assert that there are no products in the database
+        products = Product.all()
+        self.assertEqual(len(products), 0)
+        # Create 5 products in the database
+        for _ in range(5):
+            product = ProductFactory()
+            product.id = None
+            product.create()
+        # Assert that there are 5 products in the database
+        products = Product.all()
+        self.assertEqual(len(products), 5)
+
+    def test_find_products_by_name(self):
+        """It should find products by name from the database"""
+        # Create 5 products in the database
+        for _ in range(5):
+            product = ProductFactory()
+            product.id = None
+            product.create()
+        # Get the name of the first product and count the occurences
+        products = Product.all()
+        search_name = products[0].name
+        count = 0
+        for prod in products:
+            if prod.name == search_name:
+                count += 1
+        # Assert the function finds the same amount of products
+        found_products = Product.find_by_name(search_name)
+        self.assertEqual(found_products.count(), count)
+        # Assert the products have the correct name
+        for prod in found_products:
+            self.assertEqual(prod.name, search_name)
+
+    def test_find_product_by_availability(self):
+        """It should find products by availability from the database"""
+        # Create 10 products in the database
+        for _ in range(10):
+            product = ProductFactory()
+            product.id = None
+            product.create()
+        # Get the availability of the first product and count the occurences
+        products = Product.all()
+        search_availability = products[0].available
+        count = 0
+        for prod in products:
+            if prod.available == search_availability:
+                count += 1
+        # Assert the function finds the same amount of products
+        found_products = Product.find_by_availability(search_availability)
+        self.assertEqual(found_products.count(), count)
+        # Assert the products have the correct availability
+        for prod in found_products:
+            self.assertEqual(prod.available, search_availability)
+
+    def test_find_products_by_category(self):
+        """It should find products by category from the database"""
+        # Create 10 products in the database
+        for _ in range(10):
+            product = ProductFactory()
+            product.id = None
+            product.create()
+        # Get the category of the first product and count the occurences
+        products = Product.all()
+        search_category = products[0].category
+        count = 0
+        for prod in products:
+            if prod.category == search_category:
+                count += 1
+        # Assert the function finds the same amount of products
+        found_products = Product.find_by_category(search_category)
+        self.assertEqual(found_products.count(), count)
+        # Assert the products have the correct category
+        for prod in found_products:
+            self.assertEqual(prod.category, search_category)
